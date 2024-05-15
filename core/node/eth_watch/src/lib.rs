@@ -2,7 +2,7 @@
 //! protocol upgrades etc.
 //! New events are accepted to the zkSync network once they have the sufficient amount of L1 confirmations.
 
-use std::time::Duration;
+use std::{clone, time::Duration};
 
 use anyhow::Context as _;
 use tokio::sync::watch;
@@ -10,7 +10,7 @@ use zksync_dal::{Connection, ConnectionPool, Core, CoreDal};
 use zksync_system_constants::PRIORITY_EXPIRATION;
 use zksync_types::{
     ethabi::Contract, web3::BlockNumber as Web3BlockNumber, Address, PriorityOpId,
-    ProtocolVersionId,
+    ProtocolVersionId, web3::Log
 };
 
 pub use self::client::EthHttpQueryClient;
@@ -40,9 +40,12 @@ struct EthWatchState {
 #[derive(Debug)]
 pub struct EthWatch {
     client: Box<dyn EthClient>,
+    // bnb_client: Box<dyn EthClient>,
+    // add BNB client
     poll_interval: Duration,
     event_processors: Vec<Box<dyn EventProcessor>>,
     last_processed_ethereum_block: u64,
+    // sw: add support for BNB blocks
     pool: ConnectionPool<Core>,
 }
 
@@ -77,11 +80,12 @@ impl EthWatch {
             .map(|processor| processor.relevant_topic())
             .collect();
         client.set_topics(topics);
+        
 
         Ok(Self {
-            client,
-            poll_interval,
-            event_processors,
+            client: client,
+            poll_interval: poll_interval,
+            event_processors: event_processors,
             last_processed_ethereum_block: state.last_processed_ethereum_block,
             pool,
         })
@@ -171,7 +175,9 @@ impl EthWatch {
             return Ok(());
         }
 
-        let events = self
+        let mut events : Vec<Log> = Vec::new();
+
+        let mut event1 = self
             .client
             .get_events(
                 Web3BlockNumber::Number(self.last_processed_ethereum_block.into()),
@@ -179,7 +185,21 @@ impl EthWatch {
                 RETRY_LIMIT,
             )
             .await?;
-        stage_latency.observe();
+
+        let mut event2 = self
+            .client
+            .get_events(
+                Web3BlockNumber::Number(self.last_processed_ethereum_block.into()),
+                Web3BlockNumber::Number(to_block.into()),
+                RETRY_LIMIT,
+            )
+            .await?;
+
+        stage_latency.observe(); // sw: handle this 
+
+        events.append(&mut event1);
+        events.append(&mut event2);
+
 
         for processor in &mut self.event_processors {
             let relevant_topic = processor.relevant_topic();

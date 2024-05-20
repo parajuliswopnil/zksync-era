@@ -2,7 +2,7 @@
 //! protocol upgrades etc.
 //! New events are accepted to the zkSync network once they have the sufficient amount of L1 confirmations.
 
-use std::{clone, time::Duration};
+use std::time::Duration;
 
 use anyhow::Context as _;
 use tokio::sync::watch;
@@ -190,7 +190,7 @@ impl EthWatch {
             .await?;
 
         let mut event2 = self
-            .client
+            .bnb_client
             .get_events(
                 Web3BlockNumber::Number(self.last_processed_ethereum_block.into()),
                 Web3BlockNumber::Number(to_block.into()),

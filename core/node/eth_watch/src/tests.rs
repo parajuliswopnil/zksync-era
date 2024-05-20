@@ -194,6 +194,7 @@ async fn create_test_watcher(connection_pool: ConnectionPool<Core>) -> (EthWatch
         None,
         &governance_contract(),
         Box::new(client.clone()),
+        Box::new(client.clone()),
         connection_pool,
         std::time::Duration::from_nanos(1),
     )
@@ -282,6 +283,7 @@ async fn test_normal_operation_governance_upgrades() {
         Address::default(),
         None,
         &governance_contract(),
+        Box::new(client.clone()),
         Box::new(client.clone()),
         connection_pool.clone(),
         std::time::Duration::from_nanos(1),

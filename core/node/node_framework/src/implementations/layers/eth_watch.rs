@@ -19,14 +19,22 @@ use crate::{
 #[derive(Debug)]
 pub struct EthWatchLayer {
     eth_watch_config: EthWatchConfig,
+    bnb_watch_config: EthWatchConfig,
     contracts_config: ContractsConfig,
+    bnb_contracts_config: ContractsConfig,
 }
 
 impl EthWatchLayer {
-    pub fn new(eth_watch_config: EthWatchConfig, contracts_config: ContractsConfig) -> Self {
+    pub fn new(
+        eth_watch_config: EthWatchConfig, 
+        bnb_watch_config: EthWatchConfig, 
+        contracts_config: ContractsConfig, 
+        bnb_contracts_config: ContractsConfig) -> Self {
         Self {
             eth_watch_config,
+            bnb_watch_config,
             contracts_config,
+            bnb_contracts_config,
         }
     }
 }
@@ -43,6 +51,8 @@ impl WiringLayer for EthWatchLayer {
 
         let client = context.get_resource::<EthInterfaceResource>().await?.0;
 
+        let bnb_client_i = context.get_resource::<EthInterfaceResource>().await?.0;
+
         let state_transition_manager_address = self
             .contracts_config
             .ecosystem_contracts
@@ -58,9 +68,19 @@ impl WiringLayer for EthWatchLayer {
             self.contracts_config.governance_addr,
             self.eth_watch_config.confirmations_for_eth_event,
         );
+
+        let bnb_client = EthHttpQueryClient::new(
+            bnb_client_i, 
+            self.bnb_contracts_config.diamond_proxy_addr, 
+            self.bnb_contracts_config.ecosystem_contracts.map(|a| a.transparent_proxy_admin_addr), 
+            self.bnb_contracts_config.governance_addr, 
+            self.bnb_watch_config.confirmations_for_eth_event,
+        );
+
         context.add_task(Box::new(EthWatchTask {
             main_pool,
             client: eth_client,
+            bnb_client: bnb_client,
             governance_contract: governance_contract(),
             state_transition_manager_address,
             diamond_proxy_address: self.contracts_config.diamond_proxy_addr,
@@ -75,6 +95,7 @@ impl WiringLayer for EthWatchLayer {
 struct EthWatchTask {
     main_pool: ConnectionPool<Core>,
     client: EthHttpQueryClient,
+    bnb_client: EthHttpQueryClient,
     governance_contract: Contract,
     state_transition_manager_address: Option<Address>,
     diamond_proxy_address: Address,
@@ -93,6 +114,7 @@ impl Task for EthWatchTask {
             self.state_transition_manager_address,
             &self.governance_contract,
             Box::new(self.client),
+            Box::new(self.bnb_client),
             self.main_pool,
             self.poll_interval,
         )

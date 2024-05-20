@@ -9,8 +9,8 @@ use tokio::sync::watch;
 use zksync_dal::{Connection, ConnectionPool, Core, CoreDal};
 use zksync_system_constants::PRIORITY_EXPIRATION;
 use zksync_types::{
-    ethabi::Contract, web3::BlockNumber as Web3BlockNumber, Address, PriorityOpId,
-    ProtocolVersionId, web3::Log
+    ethabi::Contract, web3::{BlockNumber as Web3BlockNumber, Log}, Address, PriorityOpId,
+    ProtocolVersionId, H256
 };
 
 pub use self::client::EthHttpQueryClient;
@@ -40,7 +40,7 @@ struct EthWatchState {
 #[derive(Debug)]
 pub struct EthWatch {
     client: Box<dyn EthClient>,
-    // bnb_client: Box<dyn EthClient>,
+    bnb_client: Box<dyn EthClient>,
     // add BNB client
     poll_interval: Duration,
     event_processors: Vec<Box<dyn EventProcessor>>,
@@ -55,6 +55,7 @@ impl EthWatch {
         state_transition_manager_address: Option<Address>,
         governance_contract: &Contract,
         mut client: Box<dyn EthClient>,
+        mut bnb_client: Box<dyn EthClient>,
         pool: ConnectionPool<Core>,
         poll_interval: Duration,
     ) -> anyhow::Result<Self> {
@@ -75,15 +76,17 @@ impl EthWatch {
             Box::new(governance_upgrades_processor),
         ];
 
-        let topics = event_processors
+        let topics: Vec<H256> = event_processors
             .iter()
             .map(|processor| processor.relevant_topic())
             .collect();
-        client.set_topics(topics);
+        client.set_topics(topics.clone());
+        bnb_client.set_topics(topics.clone());
         
 
         Ok(Self {
             client: client,
+            bnb_client: bnb_client,
             poll_interval: poll_interval,
             event_processors: event_processors,
             last_processed_ethereum_block: state.last_processed_ethereum_block,

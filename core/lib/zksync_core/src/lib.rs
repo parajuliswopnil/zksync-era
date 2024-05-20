@@ -906,7 +906,14 @@ pub async fn start_eth_watch(
     stop_receiver: watch::Receiver<bool>,
 ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
     let eth_client = EthHttpQueryClient::new(
-        eth_gateway,
+        eth_gateway.clone_boxed(),
+        diamond_proxy_addr,
+        state_transition_manager_addr,
+        governance.1,
+        config.confirmations_for_eth_event,
+    );
+    let bnb_client = EthHttpQueryClient::new(
+        eth_gateway.clone_boxed(),
         diamond_proxy_addr,
         state_transition_manager_addr,
         governance.1,
@@ -918,6 +925,7 @@ pub async fn start_eth_watch(
         state_transition_manager_addr,
         &governance.0,
         Box::new(eth_client),
+        Box::new(bnb_client),
         pool,
         config.poll_interval(),
     )

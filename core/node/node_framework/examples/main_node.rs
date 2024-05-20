@@ -170,6 +170,8 @@ impl MainNodeBuilder {
     fn add_eth_watch_layer(mut self) -> anyhow::Result<Self> {
         self.node.add_layer(EthWatchLayer::new(
             EthWatchConfig::from_env()?,
+            EthWatchConfig::from_env()?,
+            ContractsConfig::from_env()?,
             ContractsConfig::from_env()?,
         ));
         Ok(self)

@@ -48,12 +48,14 @@ pub struct MulticallData {
 pub struct EthTxAggregator {
     aggregator: Aggregator,
     eth_client: Box<dyn BoundEthInterface>,
+    bnb_client: Box<dyn BoundEthInterface>,
     config: SenderConfig,
     timelock_contract_address: Address,
     l1_multicall3_address: Address,
     pub(super) state_transition_chain_contract: Address,
     functions: ZkSyncFunctions,
     base_nonce: u64,
+    bnb_base_nonce: u64,
     base_nonce_custom_commit_sender: Option<u64>,
     rollup_chain_id: L2ChainId,
     /// If set to `Some` node is operating in the 4844 mode with two operator
@@ -75,7 +77,8 @@ impl EthTxAggregator {
         pool: ConnectionPool<Core>,
         config: SenderConfig,
         aggregator: Aggregator,
-        eth_client: Box<dyn BoundEthInterface>,
+        eth_client: Box<dyn BoundEthInterface>, // sw: eth start from here 
+        bnb_client: Box<dyn BoundEthInterface>,
         timelock_contract_address: Address,
         l1_multicall3_address: Address,
         state_transition_chain_contract: Address,
@@ -83,8 +86,10 @@ impl EthTxAggregator {
         custom_commit_sender_addr: Option<Address>,
     ) -> Self {
         let eth_client = eth_client.for_component("eth_tx_aggregator");
+        let bnb_client = bnb_client.for_component("eth_tx_aggregator");
         let functions = ZkSyncFunctions::default();
         let base_nonce = eth_client.pending_nonce().await.unwrap().as_u64();
+        let bnb_base_nonce = bnb_client.pending_nonce().await.unwrap().as_u64();
 
         let base_nonce_custom_commit_sender = match custom_commit_sender_addr {
             Some(addr) => Some(
@@ -101,11 +106,13 @@ impl EthTxAggregator {
             config,
             aggregator,
             eth_client,
+            bnb_client,
             timelock_contract_address,
             l1_multicall3_address,
             state_transition_chain_contract,
             functions,
             base_nonce,
+            bnb_base_nonce,
             base_nonce_custom_commit_sender,
             rollup_chain_id,
             custom_commit_sender_addr,

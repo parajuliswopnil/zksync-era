@@ -140,6 +140,7 @@ impl EthSenderTester {
                 commitment_mode,
             ),
             gateway.clone(),
+            gateway.clone(),
             // zkSync contract address
             Address::random(),
             contracts_config.l1_multicall3_addr,

@@ -213,6 +213,7 @@ impl FromStr for Components {
     }
 }
 
+// sw: for eth sender client also 
 pub async fn initialize_components(
     configs: &GeneralConfig,
     wallets: &Wallets,
@@ -622,6 +623,14 @@ pub async fn initialize_components(
             l1_chain_id,
             query_client.clone(),
         );
+         // sw: change this
+        let bnb_client = PKSigningClient::new_raw(
+            operator_private_key.clone(),
+            diamond_proxy_addr,
+            default_priority_fee_per_gas,
+            l1_chain_id,
+            query_client.clone(),
+        );
 
         let l1_batch_commit_data_generator_mode =
             genesis_config.l1_batch_commit_data_generator_mode;
@@ -649,6 +658,7 @@ pub async fn initialize_components(
                 l1_batch_commit_data_generator_mode,
             ),
             Box::new(eth_client),
+            Box::new(bnb_client),
             contracts_config.validator_timelock_addr,
             contracts_config.l1_multicall3_addr,
             diamond_proxy_addr,

@@ -20,6 +20,11 @@ pub(super) struct EthWatcherMetrics {
     /// Latency of polling and processing events split by stage.
     #[metrics(buckets = Buckets::LATENCIES)]
     pub poll_eth_node: Family<PollStage, Histogram<Duration>>,
+    pub bnb_poll: Counter,
+    /// Latency of polling and processing events split by stage.
+    #[metrics(buckets = Buckets::LATENCIES)]
+    pub poll_bnb_node: Family<PollStage, Histogram<Duration>>,
+
 }
 
 #[vise::register]
